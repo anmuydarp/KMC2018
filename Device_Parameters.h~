@@ -1,0 +1,54 @@
+/********************************************************************/
+/*  Device Parameters for Kinetic Monte Carlo  (i-aSi)              */
+/********************************************************************/
+
+#ifndef DPARAMETERS_H
+#define DPARAMETERS_H
+
+#include <stdio.h>
+#include <iostream>
+#include <cmath>
+#include <vector>
+
+using namespace std;
+
+const double Device_X=10*1E-9; //in m (10 nm)
+const double Device_Y=100*1E-9; //in m (10 um)
+const double Device_Z=100*1E-9; //in m (10 um)
+
+const double VBOffset=0.45; // in eV
+const double ithickness=10*1E-9; // in m
+ 
+const double Volume=1E-9*Device_Y*Device_Z; // Volume of slice
+
+const double dx=1E-9;
+const double dy=1E-6;
+const double dz=1E-6;
+
+const int xpoint=Device_X/dx;
+const int ypoint=Device_Y/dy;
+const int zpoint=Device_Z/dz;
+
+const double Nvt=2E21; //in per cm3
+const double Evt=0.045; //in eV (I think this value may be 45 meV but need to find a reference for it)
+
+const int CarrierMax=1000;
+const double EnergyStep=1E-3;
+
+// Amorphous Silicon Parameters
+const double Eg_aSi=1.72;
+const double m_aSi=0.5; // Effective Hole Mass a-Si Double Check value
+const double m_Si=0.5; // Effective Hole Mass Si
+const double homega=0.02; // Phonon coupling constant for a-Si
+const double Ud=8.51E-49; // Deformation Potential in J^2
+const double S=0.5; // Huang-Rhys Factor
+const double LatticeVibration=1E13; // per second
+const double eopt_aSi=5.6; //
+
+extern double EGlobal,ETrans,initialx,GammaMax,Grdi,Grdj,GRi,GRj,Gx,Gd,Gradi,Gradj,Galpha,finalx;
+extern int nDefect,PathCount; // Total number of defects in the volume
+extern int PFCount,D2ECount,TotPh;
+extern int ph0,ph1,ph2,ph3,ph4,ph5,Ab,Em,El;
+extern double AvgE,AvgTau,AvgEpen;
+
+#endif

@@ -1,0 +1,120 @@
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
+#include <stdlib.h>
+#include <csignal>
+#include "Global.h"
+#include "Device.h"
+#include "Device_Parameters.h"
+#include "Physics_Parameters.h"
+
+using namespace std;
+
+void CalcAverage(CarrierH& Carr)
+{
+	int i,j;
+	double sum=0,sumE=0,sumTau=0,sumEpen=0;;
+
+	ofstream myfile;
+
+	// Average Tau for each carrier and total average time
+	for (i=0;i<CarrierMax;i++)
+	{
+		sum=0;				
+		for (j=0;j<=PathCount;j++)
+		{
+			sum=sum+Carr.TauPath[i][j];
+		}
+		Carr.TotalTime[i]=sum;
+		sumE=sumE+Carr.Energy[i];
+		sumTau=sumTau+Carr.TotalTime[i];
+		sumEpen=sumEpen+Carr.Epen[i];
+		//cout<<"CA func time : "<<Carr.TotalTime[i]<<'\n';
+	}
+	AvgE=sumE/CarrierMax;
+	AvgTau=sumTau/CarrierMax;
+	AvgEpen=sumEpen/CarrierMax;
+
+	myfile.open("TotalTime.txt");
+	for(i=0;i<CarrierMax;i++)
+	{
+		myfile<<Carr.TotalTime[i]<<'\n';		
+	}
+	myfile.close();
+}
+
+void WriteFinalPos(CarrierH& Carr)
+{
+	int i,CarrNum;
+
+	ofstream myfile;
+
+//------------------ Final Positions ------------------
+	myfile.open("Ef_0.30_Arr.txt");
+	for (i=0;i<CarrierMax;i++)
+	{
+		myfile<<Carr.Energy[i]<<'\n';
+	}
+	myfile.close();	
+
+	/*myfile.open("Finalx.txt");
+	for (i=0;i<CarrierMax;i++)
+	{
+		myfile<<Carr.xpos[i]<<'\n';
+	}
+	myfile.close();*/
+//------------------ Final Positions ------------------
+
+//------------------- Path Tracking -------------------
+	/*CarrNum=0;
+	myfile.open("xPathTrack_Carr.txt");
+	for (i=0;i<=PathCount;i++)
+	{
+		myfile<<Carr.xPath[CarrNum][i]<<'\n';
+	}
+	myfile.close();
+
+	myfile.open("EPathTrack_Carr.txt");
+	for (i=0;i<=PathCount;i++)
+	{
+		myfile<<Carr.EPath[CarrNum][i]<<'\n';
+	}
+	myfile.close();*/
+
+	int temp;
+
+	myfile.open("Ef-1.txt");
+	for (i=0;i<CarrierMax;i++)
+	{
+		temp=Carr.TotPath[i];
+		myfile<<Carr.EPath[i][temp-1]<<'\n';
+	}
+	myfile.close();
+
+	myfile.open("xf-1.txt");
+	for (i=0;i<CarrierMax;i++)
+	{
+		temp=Carr.TotPath[i];
+		myfile<<Carr.xPath[i][temp-1]<<'\n';		
+	}
+	myfile.close();
+
+	myfile.open("FinalTrans.txt");
+	for (i=0;i<CarrierMax;i++)
+	{
+		myfile<<Carr.TransType[i]<<'\n';
+	}
+	myfile.close();
+
+	myfile.open("FinalRate.txt");
+	for (i=0;i<CarrierMax;i++)
+	{
+		myfile<<Carr.FinalRate[i]<<'\n';
+	}
+	myfile.close();	
+//------------------- Path Tracking -------------------
+}

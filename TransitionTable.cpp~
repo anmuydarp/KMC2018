@@ -1,0 +1,128 @@
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
+#include <stdlib.h>
+#include <csignal>
+#include "Global.h"
+#include "Device.h"
+#include "Device_Parameters.h"
+#include "Physics_Parameters.h"
+
+using namespace std;
+
+// Calculate Occupation Function
+void CalculateOccupation(Defect& Def)
+{
+	int i,count,j=0;
+	double *EnergyRep,*EnergyOccupied,*EnergyUnOcc;
+
+	EnergyRep=new double[451];
+	EnergyOccupied=new double[451];
+	EnergyUnOcc=new double[451];
+
+	for (i=0;i<=VBOffset/EnergyStep;i++)
+	{
+		EnergyRep[i]=0;
+		EnergyOccupied[i]=0;
+		EnergyUnOcc[i]=0;		
+	}
+
+	// Calculating total number of occupied and unoccupied states, number of states present at the same energy
+	for (i=0;i<nDefect;i++)
+	{
+		count=(Def.Epos[i]/EnergyStep);
+
+		EnergyRep[count]=EnergyRep[count]+1;
+
+		if (Def.FlagOccupation[i]==0)
+			EnergyOccupied[count]=EnergyOccupied[count]+1;
+		else
+			EnergyUnOcc[count]=EnergyUnOcc[count]+1;
+
+	}
+
+	cout<<'\n';
+	for (i=0;i<=VBOffset/EnergyStep;i++)
+	{
+		cout<<"Energy : "<<i*EnergyStep<<"    "<<"Reps : "<<EnergyRep[i]<<"   "<<"Occupied : "<<EnergyOccupied[i]<<"    "<<"UnOccupied : "<<EnergyUnOcc[i]<<'\n';
+	}
+
+	delete [] EnergyRep;
+	delete [] EnergyOccupied;
+	delete [] EnergyUnOcc;
+}
+
+// Initial ROC Function
+void iROC(Defect& Def,RateTable& TRT)
+{
+	int i,j;
+
+	initialx=0.0;
+
+	ofstream myfile;
+	//cout<<"in IROC"<<'\n';
+	for (i=0;i<=VBOffset/EnergyStep;i++)
+	{
+		for (j=0;j<nDefect;j++)
+		{
+			TRT.RCTable[i][j]=MPROC(i,j,Def,0);			
+		}
+	}	
+}
+
+// Dynamic Transition Rate Table for all defect mechanisms 
+void HopTable(int i,Defect& Def,RateTable& TRT,CarrierH& Carr)
+{
+	//cout<<'\n'<<"Entering HopTable"<<'\n';
+	int j,Loci;
+	double E,xi; // xi - Initial position of carrier
+
+	E=Carr.Energy[i];
+	Loci=E/EnergyStep;
+	xi=Carr.xpos[i];
+	initialx=xi;
+	//initialy
+	//initialz
+
+	// For Defect to Defect Transitions
+	for (j=0;j<nDefect;j++)
+	{
+		if (Def.FlagOccupation[j]==0)
+		{
+			//TRT.D2D[j]=D2D(Loci,xi,j,Def);
+			TRT.D2D[j]=MPROC(Loci,j,Def,2);
+		}
+		else
+		{
+			TRT.D2D[j]=0;			
+		}
+	}
+
+	// For Defect to Electrode
+	for (j=0;j<=VBOffset/EnergyStep;j++)
+	{
+		TRT.D2E[j]=MPROC(Loci,j,Def,1); //Initial Energy,Final Energies,Defect Class
+		//cout<<"Loci : "<<Loci*EnergyStep<<"   "<<"D2E Energy : "<<j*EnergyStep<<"   "<<"R : "<<TRT.D2E[j]<<'\n';
+	}
+
+	//cout<<"Normalizing table"<<'\n';
+	// EfSum = Summation of all final states	
+	TRT.S1Table[0]=PF(Loci); // Poole Frenkel Emission
+	//cout<<"PF : "<<TRT.S1Table[0]<<'\n';
+	TRT.S1Table[1]=EfSum(Def,TRT,1); // Defect to Electrode Emission
+	//cout<<"D2E : "<<TRT.S1Table[1]<<'\n';
+	TRT.S1Table[2]=EfSum(Def,TRT,2); // Defect to Defect Mechanism
+	//cout<<"D2D : "<<TRT.S1Table[2]<<'\n';
+
+	TRT.TrackRate[0][i]=TRT.S1Table[0];
+	TRT.TrackRate[1][i]=TRT.S1Table[1];
+	TRT.TrackRate[2][i]=TRT.S1Table[2];
+
+	NormalizeS1Table(TRT);
+	//cout<<'\n'<<"Finished Creatign Dynamic HopTable"<<'\n';
+	//raise(SIGSEGV);
+}

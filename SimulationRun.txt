@@ -1,0 +1,12 @@
+PFCount : 2391
+D2E : 7370
+Thermionic Emission : 0
+0 Phonon : 203133
+1 Phonon : 1591
+2 Phonon : 5224
+3 Phonon : 2159
+4 Phonon : 686
+5 Phonon : 8
+Total Absorption : 9549   Total Emission : 7919
+Avg Energy : 0.139814
+Avg Time : 0.142472

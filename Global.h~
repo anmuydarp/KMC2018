@@ -1,0 +1,76 @@
+#ifndef GLOBAL_H
+#define GLOBAL_H
+
+#include "Device.h"
+
+using namespace std;
+
+/******************************************************************
+                    Function in Initialize.cpp
+******************************************************************/
+void Initialize_Defects(Defect& Def);
+
+/******************************************************************
+                    Function in CreateDefects.cpp
+******************************************************************/
+void Initialize_RealSpace_Defects(Defect& Def);
+void Initialize_Energy_Defects(Defect& Def);
+void Initialize_Occupation(Defect& Def);
+void Initialize_Carriers(CarrierH& Carr);
+
+/******************************************************************
+                    Function in TransitionTable.cpp
+******************************************************************/
+void CalculateOccupation(Defect& Def);
+void iROC(Defect& Def,RateTable& TRT);
+void HopTable(int,Defect& Def,RateTable& TRT,CarrierH& Carr);
+
+/******************************************************************
+                    Function in TransitionRateCalc.cpp
+******************************************************************/
+double MPROC(int,int,Defect& Def,int);
+void NormalizeRCTable(RateTable& TRT);
+void NormalizeS1Table(RateTable& TRT);
+double EfSum(Defect& Def,RateTable& TRT,int);
+void NormalizeS2Table(RateTable& TRT,int);
+int ValidateFinalState(double,double);
+int BinarySearch(RateTable& TRT,int,double,int);
+
+/******************************************************************
+              Function in TransitionRateFunctions.cpp
+******************************************************************/
+double InelasticTransition(double,double,double,int,int);
+double ElasticTransition(double,double,double,int);
+double PF(int);
+double D2D(int,double,int,Defect& Def);
+double PhD2D(int,int,int,Defect& Def);
+
+/******************************************************************
+                    Function in KMCLoop.cpp
+******************************************************************/
+void KMCLoop(Defect& Def,RateTable& TRT,CarrierH& Carr);           
+
+/******************************************************************
+                    Function in KMCEvents.cpp
+******************************************************************/
+void fROC(int,Defect& Def,RateTable& TRT,CarrierH& Carr);
+int MechSelect(RateTable& TRT);
+void FinalState(int,int,Defect& Def,RateTable& TRT,CarrierH& Carr);
+
+/******************************************************************
+                    Function in Write_Calc.cpp
+******************************************************************/
+void CalcAverage(CarrierH& Carr);
+void WriteFinalPos(CarrierH& Carr);
+
+/******************************************************************
+                    Function in Math.cpp
+******************************************************************/
+double trapzd(double (*)(double),double,double,int);
+double qsimp(double (*)(double),double,double);
+float bessi0(float);
+float bessi1(float);
+float bessi(int,float);
+int factorial(int);
+double sinc(double);
+#endif

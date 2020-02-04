@@ -1,0 +1,25 @@
+CC=g++
+CFLAGS=-Wall -pedantic
+GDB=-ggdb
+
+quickmake:KMCmain.cpp \
+	Math.cpp \
+	Initialize.cpp \
+	CreateDefects.cpp \
+	Device.cpp \
+	TransitionTable.cpp \
+	TransitionRateCalc.cpp \
+	TransitionRateFunctions.cpp \
+	KMCLoop.cpp \
+	KMCEvents.cpp
+	$(CC) $(CFLAGS) $(GDB) -o KineticMC \
+KMCmain.cpp \
+Math.cpp \
+Initialize.cpp \
+CreateDefects.cpp \
+Device.cpp \
+TransitionTable.cpp \
+TransitionRateCalc.cpp \
+TransitionRateFunctions.cpp \
+KMCLoop.cpp \
+KMCEvents.cpp

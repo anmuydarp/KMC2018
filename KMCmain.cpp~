@@ -1,0 +1,105 @@
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
+#include <stdlib.h>
+#include <csignal>
+#include "Global.h"
+#include "Device.h"
+#include "Device_Parameters.h"
+#include "Physics_Parameters.h"
+
+using namespace std;
+
+//----------Initializing Global Variables-------------------
+double EGlobal,ETrans,initialx,GammaMax,Grdi,Grdj,GRi,GRj,Gx,Gd,Gradi,Gradj,Galpha,finalx;
+int nDefect,PathCount=0,PFCount=0,D2ECount=0;
+int TotPh=0,ph0,ph1,ph2,ph3,ph4,ph5,Ab,Em,El;
+double AvgE,AvgTau,AvgEpen;
+
+int main(void)
+{
+	// Initialize all classes
+	Defect Def;
+	//Device Dev;
+	CarrierH Carr;
+	RateTable TRT;
+	
+	srand (time(NULL));
+
+	Def.DefectInit();
+	Carr.CarrierInit();	
+
+	ofstream myfile;
+
+	// Read Valence Band Profile from SILVACO (Don't require it right now, analyzing a 10 nm slice. Might want to represent slope more accurately)
+	Initialize_Defects(Def);
+
+	/*double temp;
+
+	initialx=2E-9;
+	myfile.open("D2D_EmS6.txt");
+	for (finalx=2E-9;finalx<=6E-9;finalx=finalx+0.1E-9)
+	{
+		temp=MPROC(150,0,Def,2); // D2D
+		//temp=D2D(150,2E-9,0,Def);
+		myfile<<temp<<'\n';
+		cout<<"finalx : "<<finalx<<"   "<<"temp : "<<temp<<'\n';		
+	}
+	myfile.close();
+
+	raise(SIGSEGV);*/
+
+	//CalculateOccupation(Def);
+
+	// Initialize Carriers (Non Maxwellian Distribution or Gaussian Distribution)
+	Initialize_Carriers(Carr);
+
+	int i;
+	myfile.open("Etest_Ein.txt");
+	for (i=0;i<CarrierMax;i++)
+	{
+		myfile<<Carr.Energy[i]<<'\n';
+	}
+	myfile.close();
+
+	// Create and Normalize Initial Rate of Capture Transition Rate Table
+	TRT.TRTInit();
+	iROC(Def,TRT);
+	NormalizeRCTable(TRT);
+
+	// KMC Loop
+	KMCLoop(Def,TRT,Carr); // The KMC version of freeflight and scatter
+
+	// Write Final Positions
+	WriteFinalPos(Carr);
+
+	// Calculating Averages
+	CalcAverage(Carr);
+
+	cout<<'\n'<<"Extraction : "<<"PF : "<<PFCount<<"   "<<"D2E : "<<D2ECount<<'\n';
+	cout<<'\n'<<'\n'<<"Total D2D Transitions : "<<TotPh<<'\n';
+	cout<<'\n'<<'\n'<<"0 Phonon : "<<ph0<<'\n'<<"1 Phonon : "<<ph1<<'\n'<<"2 Phonon : "<<ph2<<'\n'<<"3 Phonon : "<<ph3<<'\n'<<"4 Phonon : "<<ph4<<'\n'<<"5 Phonon : "<<ph5<<'\n';
+	cout<<'\n'<<'\n'<<"Total Absorption : "<<Ab<<"   "<<"Total Emission : "<<Em<<"   "<<"Total Elastic : "<<El<<'\n';
+	cout<<'\n'<<'\n'<<"Avg Energy : "<<AvgE<<"   "<<"Avg Time : "<<AvgTau<<"   "<<"Avg Epen : "<<AvgEpen<<'\n';
+
+	myfile.open("MechCount.txt");
+	{
+		myfile<<"Sim Start Time : 1:40 AM for D2D - Ein - 0.147 with S = 3 "<<'\n'<<'\n';
+		myfile<<"PFCount : "<<PFCount<<"    "<<"D2E : "<<D2ECount<<'\n'<<'\n';
+		myfile<<"Totat Transitions : "<<TotPh<<'\n'<<'\n';
+		myfile<<"0 Phonon : "<<ph0<<'\n'<<"1 Phonon : "<<ph1<<'\n'<<"2 Phonon : "<<ph2<<'\n'<<"3 Phonon : "<<ph3<<'\n'<<"4 Phonon : "<<ph4<<'\n'<<"5 Phonon : "<<ph5<<'\n'<<'\n';
+		myfile<<"Total Absorption : "<<Ab<<"   "<<"Total Emission : "<<Em<<"   "<<"Total Elastic : "<<El<<'\n';
+		myfile<<"Avg Energy : "<<AvgE<<"   "<<"Avg Time : "<<AvgTau<<"   "<<"Avg Epen : "<<AvgEpen<<'\n';
+	}
+	myfile.close();
+
+	Def.DefectDel();
+	Carr.CarrierDel();
+	TRT.TRTDel();
+	
+	cout<<"Kinetic Monte Carlo"<<'\n';
+}

@@ -1,0 +1,175 @@
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <vector>
+#include <ctime>
+#include <cstdlib>
+#include <stdlib.h>
+#include <csignal>
+#include "Global.h"
+#include "Device_Parameters.h"
+#include "Physics_Parameters.h"
+
+using namespace std;
+
+#define FUNC(x) ((*func)(x))
+
+double func(double x)
+{
+  double ExpTerm,EvTail;  
+
+  EvTail=VBOffset-(x*VBOffset/(ithickness));
+  
+  //ExpTerm=exp(-(EGlobal-EvTail)/Evt); // This is how it should be for valence bands where EGlobal > EvTail
+
+  ExpTerm=exp(-(EvTail-EGlobal)/Evt); // Using this term right now as I've inverted the energy band, so everything looks like it's a CB
+
+  return ExpTerm;
+}
+
+void Initialize_Defects(Defect& Def)
+{
+	// Calculate total number of defects in each slice. Each slice is x (1 nm) * y (10 nm) * z (10 nm)
+	// 1 - Calculate N(E) for each dx in the slice
+	// 2 - Sum N(E) for the slice and multiply by dy and dz
+	// 3 - Calculate volume of slice
+	// 4 - Calculate total number of discrete defects in the device
+	// 5 - Spread the defects uniformly in real space in each slice
+	// 6 - Spread the defects according to exponential decay function in energy	
+
+	int i,j,k,dim;
+	double E,X_Integral,E_Integral,xmin,xmax,dmax,temp,total,totaldefects=0.0,Eb,Ea;
+	double *NE;	
+
+	ofstream myfile;
+
+	// SliceDensity - Total number of discrete defects in each slice
+	// NE[] - Density of defects along the x axis
+
+	dim=VBOffset/EnergyStep;
+
+	NE=new double[dim+1];	
+
+	for (i=0;i<xpoint;i++) // First if - Loop to change slice
+	{
+		for (j=0;j<=VBOffset/EnergyStep;j++) // Second Loop - Integral of DOS for each Estep along x - axis	
+		{
+			E=EnergyStep*j;
+			EGlobal=E;			
+			dmax=ithickness*(VBOffset-E)/VBOffset;
+
+			xmin=i*dx;			
+
+			if (dmax>=(i+1)*dx)
+				xmax=(i+1)*dx;
+			else 
+				xmax=dmax;			
+
+			if (xmax<xmin)
+				X_Integral=0.0;
+			else
+			{
+				X_Integral=qsimp(&func,xmin,xmax);				
+			}
+	
+			NE[j]=Nvt*X_Integral*1E2;
+			//cout<<"Cell : "<<i<<"   "<<"Energy : "<<E<<"    "<<"DOS : "<<NE[j]<<'\n';
+			//cout<<"xmin : "<<xmin<<"   "<<"xmax : "<<xmax<<"   "<<"dmax : "<<dmax<<'\n';
+		}		
+		
+		// Integration of DOS along E axis
+		temp=0.0;
+		for (k=0;k<dim/10;k++)
+		{
+			Eb=(k+1)*10*EnergyStep;
+			Ea=k*10*EnergyStep;
+			E_Integral=(Eb-Ea)*(NE[k*10]+NE[(k+1)*10])*0.5; // Integral using Trapezoidal rule
+			temp=temp+E_Integral;
+		}
+		E_Integral=temp;
+		
+		//cout<<"Slice : "<<i<<"   "<<"E_Integral : "<<E_Integral<<'\n';
+		
+		// Integration of DOS along y and z axis
+		total=E_Integral*Device_Y*Device_Z*1E4;
+		//cout<<"Total : "<<total<<'\n';
+
+		// Total Number of defects in each slice
+		Def.SliceDefect[i]=int(total);
+		//cout<<"Total Number of Defects in Slice : "<<i<<"   "<<Def.SliceDefect[i]<<"    "<<"xmin : "<<xmin<<"   "<<"xmax : "<<xmax<<'\n';
+		totaldefects=totaldefects+Def.SliceDefect[i];		
+	}
+	cout<<"Total Number of Defects : "<<totaldefects<<'\n';
+   
+	delete [] NE;	
+	
+	Initialize_RealSpace_Defects(Def);
+
+	Initialize_Energy_Defects(Def);
+
+	Initialize_Occupation(Def);
+
+	cout<<'\n'<<"=========================================INITIALIZATION OF DEFECTS COMPLETE==========================================="<<'\n';
+}
+
+void Initialize_Carriers(CarrierH& Carr)
+{
+	//double Estep=1E-3,sigma=0.07,mu=0.147;
+	double Estep=1E-3,sigma=0.1,mu=0.350;
+	int i,j,dim;
+	double *PDF,sum=0,r;
+
+	ofstream myfile;
+
+	dim=int(VBOffset/Estep);
+	PDF=new double[dim];
+
+	// Creating PDF Table
+	for (i=0;i<=VBOffset/Estep;i++)
+	{
+		PDF[i]=(1/(sigma*sqrt(2*pi)))*exp(-pow(i*Estep-mu,2.0)/(2*sigma*sigma));
+		sum=sum+PDF[i];
+		//cout<<"i : "<<i<<"  "<<"PDF : "<<PDF[i]<<"   "<<"sum : "<<sum<<'\n';		
+	}
+
+	// Summation and Normalization PDF Table
+	PDF[0]=PDF[0]/sum;
+	for (i=1;i<=VBOffset/Estep;i++)
+	{
+		PDF[i]=PDF[i]/sum+PDF[i-1];		
+	}
+
+	// Choosing Energies of carreirs according a Gaussian Distribution
+	//myfile.open("CarrierEnergy.txt");
+	for (i=0;i<CarrierMax;i++)
+	{		
+		r=(double)rand()/RAND_MAX;
+
+		for (j=0;j<VBOffset/Estep;j++)
+		{
+			if (r>PDF[j] && r<=PDF[j+1])
+			{
+				Carr.Energy[i]=(j+1)*Estep;
+				Carr.Status[i]=0; // All carriers are initialized at the barrier
+				Carr.xpos[i]=0; // Initialized at the barrier
+				//myfile<<Carr.Energy[i]<<'\n';				
+			}
+		}
+	}
+
+	/************************************************************************
+	MAXWELLIAN INITIALIZATION
+	************************************************************************/
+	/*for (i=0;i<CarrierMax;i++)
+	{
+		r=(double)rand()/RAND_MAX;
+		Carr.Energy[i]=-1.5*Vt*log(r);
+		Carr.Status[i]=0;
+		Carr.xpos[i]=0;
+	}*/
+	//myfile.close();
+	delete [] PDF;
+
+	cout<<'\n'<<"=========================================INITIALIZATION OF CARRIERS COMPLETE=========================================="<<'\n';
+}
